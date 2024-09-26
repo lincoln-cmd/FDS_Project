@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% load static %}
+<head>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+
+{% block content %}
+    <h2>Sign Up</h2>
+    
+    <!-- 필수 조건 안내 -->
+    <div style="color:blue;">
+        <p><strong>Username Requirements:</strong></p>
+        <ul>
+            <li>The username is required.</li>
+        </ul>
+
+        <p><strong>Password Requirements:</strong></p>
+        <ul>
+            <li>Password must be at least 8 characters long.</li>
+            <li>Password must contain both letters and numbers.</li>
+            <li>Password must include at least one special character (e.g., !@#$%^&*).</li>
+            <li>Password must not be a commonly used password (e.g., "password123", "qwerty", etc.).</li>
+            <li>Password cannot consist entirely of numbers (e.g., "12345678" is not allowed).</li>
+        </ul>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        <label for="username">Username:</label>
+        <input type="text" name="username" id="username" value="{{ form.username.value }}">
+
+        <label for="email">Email:</label>
+        <input type="email" name="email" id="email" value="{{ form.email.value }}">
+
+        <label for="password1">Password:</label>
+        <input type="password" name="password1" id="password1">
+
+        <label for="password2">Confirm Password:</label>
+        <input type="password" name="password2" id="password2">
+
+        <button type="submit">Sign Up</button>
+    </form>
+
+    <!-- 에러 메시지 출력 -->
+    {% if form.errors %}
+        <div style="color:red;">
+            <ul>
+                {% for field in form %}
+                    {% if field.errors %}
+                        <li>{{ field.label }}: {{ field.errors|striptags }}</li>
+                    {% endif %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <li>{{ error|striptags }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+{% endblock %}
+
+

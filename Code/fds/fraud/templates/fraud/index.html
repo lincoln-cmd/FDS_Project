@@ -1,0 +1,40 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraud Detection System</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <h1>Welcome t<a href="https://vidkidz.tistory.com/85" class="easter-egg">o</a> the Fraud Detection System</h1>
+
+        <nav>
+            <ul>
+                <li><a href="{% url 'upload_form' %}">Upload Data</a></li>
+                <li><a href="http://211.188.51.137:5601/app/dashboards#/view/58a42c20-7a19-11ef-9b66-13538d49ff90?_g=(filters:!(),refreshInterval:(pause:!f,value:10000),time:(from:'1969-12-31T23:59:59.880Z',to:'1969-12-31T23:59:59.890Z'))">View Dashboard in Kibana</a></li>
+                <li><a href="{% url 'test_fraud' %}">Test Fraud</a></li>
+                <li><a href="{% url 'dashboard' %}">Dashboard (Analytics Overview)</a></li>
+                {% if user.is_authenticated %}
+                    <li><a href="{% url 'logout' %}">Logout</a></li>
+                {% else %}
+                    <li><a href="{% url 'login' %}">Login</a></li>
+                    <li><a href="{% url 'signup' %}">Sign Up</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <h2>About Us</h2>
+        <p>This system helps in detecting fraudulent transactions effectively.</p>
+        <h2>How It Works</h2>
+        <p>Our model analyzes transaction patterns to identify potential fraud.</p>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Fraud Detection System. All rights reserved.</p>
+    </footer>
+</body>
+</html>

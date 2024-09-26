@@ -1,0 +1,31 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraud Detection Dashboard</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <h1>Fraud Detection Dashboard</h1>
+        <nav>
+            <ul>
+                <li><a href="{% url 'index' %}">Home</a></li>
+                <li><a href="{% url 'upload_form' %}">Upload More Data</a></li>
+                <li><a href="{% url 'test_fraud' %}">Test Fraud</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Kibana 대시보드를 iframe으로 임베드하여 실시간 시각화 -->
+    <iframe
+        src="http://211.188.51.137:5601/app/dashboards#/view/user_{{ request.user.username }}_dashboard"
+        height="1000px"
+        width="100%"
+        frameborder="0"
+        allowfullscreen
+    ></iframe>
+</body>
+</html>

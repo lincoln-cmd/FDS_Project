@@ -1,0 +1,39 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Form</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+</head>
+<body>
+    <header>
+        {% block content %}
+            <h1>Upload Transaction Data</h1>
+            <nav>
+                <ul>
+                    <li><a href="{% url 'index' %}">Home</a></li>
+                    <li><a href="{% url 'upload_form' %}">Upload Data</a></li>
+                    <li><a href="http://211.188.51.137:5601/app/dashboards#/view/58a42c20-7a19-11ef-9b66-13538d49ff90?_g=(filters:!(),refreshInterval:(pause:!f,value:10000),time:(from:'1969-12-31T23:59:59.880Z',to:'1969-12-31T23:59:59.890Z'))">View Dashboard in Kibana</a></li>
+                    <li><a href="{% url 'test_fraud' %}">Test Fraud</a></li>
+                    <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                </ul>
+            </nav>
+        {% endblock %}
+    </header>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <p style="color:red">The CSV file has to include <b><i>'Amount', 'Customer ID', 'Merchant ID', 'Lat', and 'Long'</i></b> columns</p>
+        <label for="file">Choose a CSV file to upload:</label>
+        <input type="file" id="file" name="file" accept=".csv" required>
+        <button type="submit">Upload</button>
+    </form>
+
+    {% if error %}
+        <p style="color: red;">{{ error }}</p>
+    {% endif %}
+</body>
+</html>
