@@ -71,11 +71,17 @@ TEMPLATES = [
 ]
 
 
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/3.2/howto/static-files/
+
 STATIC_URL = '/static/'
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 # static 파일들이 있는 폴더를 지정
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static"),  # 프로젝트 루트에 있는 static 폴더
+    #os.path.join(BASE_DIR, "static/"),  # 프로젝트 루트에 있는 static 폴더
     os.path.join(BASE_DIR, "fraud", "static"),  # fraud 앱 내의 static 폴더
 ]
 
@@ -153,10 +159,8 @@ USE_L10N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/3.2/howto/static-files/
 
-STATIC_URL = '/static/'
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field

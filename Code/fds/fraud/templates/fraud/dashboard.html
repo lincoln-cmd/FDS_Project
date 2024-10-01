@@ -20,12 +20,6 @@
     </header>
 
     <!-- Kibana 대시보드를 iframe으로 임베드하여 실시간 시각화 -->
-    <iframe
-        src="http://211.188.51.137:5601/app/dashboards#/view/user_{{ request.user.username }}_dashboard"
-        height="1000px"
-        width="100%"
-        frameborder="0"
-        allowfullscreen
-    ></iframe>
+    <iframe src="{{ kibana_url }}" style="width:100%; height:100vh;" frameborder="0"></iframe>
 </body>
 </html>

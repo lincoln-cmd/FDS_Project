@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard2 - Fraud Prediction</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <h1>Fraud Prediction Visualization</h1>
+            <nav>
+                <ul>
+                    <li><a href="{% url 'index' %}">Home</a></li>
+                    <li><a href="{% url 'upload_form' %}">Upload More Data</a></li>
+                    <li><a href="{% url 'test_fraud' %}">Test Fraud</a></li>
+                </ul>
+            </nav>
+    </header>
+
+    <!-- 시각화된 이미지 표시 -->
+    <img src="data:image/png;base64,{{ graphic }}" alt="Fraud Prediction Visualization">
+    <a href="?download=1" class= "download-button">Download Fraud Prediction Map</a>
+    
+
+    <!-- 탐지된 이상 거래 내역 테이블 표시 -->
+    <h2>Fraud Transactions</h2>
+    {{ fraud_transactions|safe }}  <!-- HTML로 변환된 테이블을 렌더링 -->
+    <a href="?download_csv=1" class= "download-button">Download Table Data (CSV)</a>
+</body>
+</html>

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fraud Detection File Upload</title>
+</head>
+<body>
+    <h2>Upload a file for fraud detection</h2>
+    <form method="post" enctype="multipart/form-data" action="{% url 'test_fraud' %}">
+        <input type="file" name="file">
+        <button type="submit">Upload</button>
+    </form>
+</body>
+</html>
