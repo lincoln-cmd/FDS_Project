@@ -410,10 +410,17 @@ def upload_form2(request):
 
 
 
+"""
 
+@login_required
+def redirect_to_dashboard(request):
+    user_id = request.user.username  # 로그인한 사용자 ID 가져오기
+    kibana_url = f'http://211.188.51.137:5601/app/dashboards#/view/78e0ff70-7b56-11ef-9b66-13538d49ff90?_a=(filters:!((meta:(alias:!n,disabled:!f,key:user_id,negate:!f,params:(query:\'{user_id}\'),type:phrase))))'
+    return redirect(kibana_url)
 
+"""
 
-
+"""
 
 @login_required
 def upload_form(request):
@@ -509,6 +516,120 @@ def upload_form(request):
 
     return render(request, 'fraud/upload_form.html')
 
+"""
+
+
+# Kibana에서 개별 대시보드를 자동으로 생성하고 시각화요소를 동적으로 추가하는 기능은 유료 기능
+# 대신 하나의 대시보드를 공유하고 URL 필터링을 통해 사용자별로 데이터를 구분하여 띄워주는 방식 사용
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+import pandas as pd
+import numpy as np
+import random
+from sklearn.preprocessing import LabelEncoder
+from django.db import connection, connections, OperationalError
+from datetime import datetime
+from elasticsearch import Elasticsearch
+
+# Elasticsearch 연결 설정
+es = Elasticsearch([{'host': '10.0.1.7', 'port': 9200}])
+
+# 모델 로드 함수
+def load_model():
+    model_path = 'fraud/models/FDS_model_isolationForest.pkl'
+    with open(model_path, 'rb') as model_file:
+        model = pickle.load(model_file)
+    return model
+
+# 랜덤으로 나머지 17개의 특성 생성하는 함수
+def random_features():
+    return [random.uniform(0, 1) for _ in range(18)]
+
+@login_required
+def upload_form(request):
+    if request.method == 'POST':
+        uploaded_file = request.FILES['file']
+        df = pd.read_csv(uploaded_file)
+
+        # 사용자 데이터베이스 설정
+        db_name = f'user_{request.user.username}_db'
+        create_db_sql = f"CREATE DATABASE IF NOT EXISTS `{db_name}`"
+
+        if db_name not in settings.DATABASES:
+            settings.DATABASES[db_name] = {
+                'ENGINE': 'django.db.backends.mysql',
+                'NAME': db_name,
+                'USER': 'fds001',
+                'PASSWORD': 'fds001',
+                'HOST': '10.0.1.7',
+                'PORT': '3306',
+            }
+
+        try:
+            # MySQL 데이터베이스 연결 및 테이블 생성
+            with connection.cursor() as cursor:
+                cursor.execute(create_db_sql)
+
+            with connections[db_name].cursor() as cursor:
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS fraud_transaction (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        amount DECIMAL(10, 2),
+                        customer_id VARCHAR(255),
+                        merchant_id VARCHAR(255),
+                        lat DECIMAL(10, 8),
+                        `long` DECIMAL(11, 8),
+                        fraud_prediction DECIMAL(10, 8)
+                    )
+                ''')
+
+                index_name = f'user_{request.user.username}_transactions'
+                customer_id_encoder = LabelEncoder()
+                merchant_id_encoder = LabelEncoder()
+
+                df['Customer ID'] = customer_id_encoder.fit_transform(df['Customer ID'])
+                df['Merchant ID'] = merchant_id_encoder.fit_transform(df['Merchant ID'])
+
+                model = load_model()
+
+                for _, row in df.iterrows():
+                    prediction_input = np.concatenate([np.array([row['Amount'], row['Customer ID'], row['Merchant ID'], row['Lat'], row['Long']]), random_features()])
+                    prediction = model.predict(prediction_input.reshape(1, -1))[0]
+
+                    cursor.execute('''
+                        INSERT INTO fraud_transaction (amount, customer_id, merchant_id, lat, `long`, fraud_prediction)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                    ''', (row['Amount'], row['Customer ID'], row['Merchant ID'], row['Lat'], row['Long'], prediction))
+
+                    # Elasticsearch에 인덱싱
+                    es.index(index=index_name, body={
+                        'amount': row['Amount'],
+                        'customer_id': row['Customer ID'],
+                        'merchant_id': row['Merchant ID'],
+                        'lat': row['Lat'],
+                        'long': row['Long'],
+                        'fraud_prediction': prediction,
+                        'user_id': request.user.username,
+                        'timestamp': datetime.now(),
+                    })
+
+            # Kibana 대시보드를 iframe으로 보여주기 위한 URL 생성
+            kibana_url = f"http://211.188.51.137:5601/app/dashboards#/view/78e0ff70-7b56-11ef-9b66-13538d49ff90?_a=(filters:!((meta:(alias:!n,disabled:!f,key:user_id,negate:!f,params:(query:'{{ request.user.username }}'),type:phrase)))"
+            
+            
+
+
+            # dashboard.html로 리다이렉트하면서 Kibana 대시보드를 iframe으로 보여줌
+            return render(request, 'fraud/dashboard.html', {'kibana_url': kibana_url})
+
+        except OperationalError as e:
+            return HttpResponse(f"데이터베이스 연결 오류: {str(e)}")
+
+    return render(request, 'fraud/upload_form.html')
+
+
+
 
 
 # Kibana에 Index Pattern 생성 함수
@@ -521,7 +642,8 @@ def create_kibana_index_pattern(index_name):
     data = {
         "attributes": {
             "title": index_name,
-            "timeFieldName": "timestamp"  # 이 부분은 필요에 따라 수정 가능
+            "timeFieldName": "timestamp",
+            "fields": '[{"name":"user_id","type":"keyword"}]'  # user_id 필드를 명시적으로 추가
         }
     }
 
@@ -534,6 +656,12 @@ def create_kibana_index_pattern(index_name):
 
 
 
+
+
+
+
+
+"""
 # Kibana 대시보드 생성 함수
 def create_kibana_dashboard(username):
     kibana_url = "http://211.188.51.137:5601/api/saved_objects/dashboard"
@@ -586,6 +714,8 @@ def create_kibana_dashboard(username):
         # 오류 처리
         print(f"Kibana 대시보드 생성 실패: {response.status_code}")
         return None
+
+"""
 
 
 

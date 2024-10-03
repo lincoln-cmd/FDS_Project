@@ -194,6 +194,12 @@ tr:hover {
 }
 
 
+.signup-form-bottom-space {
+    margin-bottom: 1200px; /* Add enough space to avoid footer overlap */
+}
+
+
+
 
 /* 이스터에그 링크의 스타일을 수정 */
 .easter-egg {
@@ -205,3 +211,4 @@ tr:hover {
 .easter-egg:hover {
     color: #ccc;  /* 마우스를 올렸을 때의 색상 */
 }
+

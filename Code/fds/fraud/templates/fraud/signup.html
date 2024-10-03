@@ -25,7 +25,7 @@
         </ul>
     </div>
 
-    <form method="POST">
+    <form method="POST" class="signup-form-bottom-space">
         {% csrf_token %}
         <label for="username">Username:</label>
         <input type="text" name="username" id="username" value="{{ form.username.value }}">
