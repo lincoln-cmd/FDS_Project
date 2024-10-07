@@ -45,6 +45,9 @@ from django.shortcuts import render
 from django.http import HttpResponse
 
 from django.db import connections, OperationalError, connection
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.core.mail import send_mail
 
 def index(request):
     return render(request, 'fraud/index.html')  # 메인 페이지 렌더링
@@ -288,6 +291,24 @@ def dashboard2(request):
 
         # 이상 거래만 추출하여 HTML 테이블에 전달
         fraud_transactions = df[df['Fraud Prediction'] == 1][['amt', 'customer_id', 'merchant_id', 'lat', 'long']]
+
+        # 이메일 발송
+        if not fraud_transactions.empty:
+            try:
+                # 이메일 내용 템플릿 렌더링
+                email_html_message = render_to_string('fraud/email_template.html', {'fraud_transactions': fraud_transactions})
+                email_plaintext_message = strip_tags(email_html_message)
+
+                send_mail(
+                    subject = '[Sniffers] Fraudulent Transaction Detected!',
+                    message = email_plaintext_message,
+                    from_email = settings.DEFAULT_FROM_EMAIL,
+                    recipient_list = [request.user.email], # 유저의 이메일로 발송
+                    html_message = email_html_message,
+                    fail_silently = False,
+                )
+            except Exception as e:
+                print(f"Failed to send email: {str(e)}")
 
 
         # 다운로드 요청 처리 (기능 추가)
@@ -593,9 +614,14 @@ def upload_form(request):
 
                 model = load_model()
 
+                fraud_predictions = []
+
                 for _, row in df.iterrows():
                     prediction_input = np.concatenate([np.array([row['Amount'], row['Customer ID'], row['Merchant ID'], row['Lat'], row['Long']]), random_features()])
                     prediction = model.predict(prediction_input.reshape(1, -1))[0]
+
+                    # 예측 결과를 데이터프레임에 추가
+                    fraud_predictions.append(prediction)
 
                     cursor.execute('''
                         INSERT INTO fraud_transaction (amount, customer_id, merchant_id, lat, `long`, fraud_prediction)
@@ -614,10 +640,36 @@ def upload_form(request):
                         'timestamp': datetime.now(),
                     })
 
+                # DataFrame에 예측값을 추가
+                df['Fraud Prediction'] = fraud_predictions
+
+                # 이상 거래만 필터링
+                fraud_transactions = df[df['Fraud Prediction'] == 1][['Amount', 'Customer ID', 'Merchant ID', 'Lat', 'Long']]
+
+                # fraud_transactions를 리스트로 변환
+                fraud_transactions_list = fraud_transactions.values.tolist()
+
+                # 이상 거래가 있을 경우 이메일 발송
+                if fraud_transactions_list:
+                    try:
+                        # 이메일 내용 템플릿 렌더링
+                        email_html_message = render_to_string('fraud/email_template.html', {'fraud_transactions': fraud_transactions_list})
+                        email_plaintext_message = strip_tags(email_html_message)
+
+                        send_mail(
+                            subject='[Sniffers] 이상 거래가 감지되었습니다!',
+                            message=email_plaintext_message,
+                            from_email=settings.DEFAULT_FROM_EMAIL,
+                            recipient_list=[request.user.email],  # 유저의 이메일로 발송
+                            html_message=email_html_message,
+                            fail_silently=False
+                        )
+                    except Exception as e:
+                        return HttpResponse(f"이메일 발송 실패: {str(e)}")
+
             # Kibana 대시보드를 iframe으로 보여주기 위한 URL 생성
-            kibana_url = f"http://211.188.51.137:5601/app/dashboards#/view/78e0ff70-7b56-11ef-9b66-13538d49ff90?_a=(filters:!((meta:(alias:!n,disabled:!f,key:user_id,negate:!f,params:(query:'{{ request.user.username }}'),type:phrase)))"
-            
-            
+            #kibana_url = f"http://211.188.51.137:5601/app/dashboards#/view/78e0ff70-7b56-11ef-9b66-13538d49ff90?_a=(filters:!((meta:(alias:!n,disabled:!f,key=user_id,negate:!f,params:(query='{request.user.username}'),type:phrase)))"
+            kibana_url = f"http://211.188.51.137:5601/app/dashboards#/view/78e0ff70-7b56-11ef-9b66-13538d49ff90?_a=(filters:!((meta:(alias:!n,disabled:!f,key:user_id,negate:!f,params:(query:'{request.user.username}'),type:phrase)))"
 
 
             # dashboard.html로 리다이렉트하면서 Kibana 대시보드를 iframe으로 보여줌
@@ -627,6 +679,10 @@ def upload_form(request):
             return HttpResponse(f"데이터베이스 연결 오류: {str(e)}")
 
     return render(request, 'fraud/upload_form.html')
+
+
+
+
 
 
 
@@ -765,9 +821,15 @@ def dashboard(request):
             'fraud_prediction': row[5],
         } for row in transactions]
 
+        # 사용자 필터가 적용된 Kibana URL 생성
+        kibana_url = f"http://211.188.51.137:5601/app/dashboards#/view/78e0ff70-7b56-11ef-9b66-13538d49ff90?_a=(filters:!((meta:(alias:!n,disabled:!f,key:user_id,negate:!f,params:(query:'{request.user.username}'),type:phrase)))"
+
 
         # 대시보드 페이지로 렌더링
-        return render(request, 'fraud/dashboard.html', {'transactions': transaction_data})
+        return render(request, 'fraud/dashboard.html', {
+            'transactions': transaction_data, # 기존 데이터를 유지
+            'kibana_url': kibana_url # Kibana URL 전달
+        })
     
     except OperationalError as e:
         return HttpResponse(f"Database connection for {db_name} failed: {str(e)}")
